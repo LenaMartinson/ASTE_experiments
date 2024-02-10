@@ -1,0 +1,6 @@
+torch
+numpy
+thop
+transformers
+tqdm
+allennlp
