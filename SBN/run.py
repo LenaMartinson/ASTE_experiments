@@ -279,6 +279,24 @@ def train(args):
         {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
     optimizer = AdamW(training_param_optimizer, lr=args.learning_rate)
 
+    if args.model_to_upload != None:
+        model_path = args.model_to_upload
+        if args.device == 'cpu':
+            state = torch.load(model_path, map_location=torch.device('cpu'))
+        else:
+            state = torch.load(model_path)
+        Bert.load_state_dict(state['bert_model'])
+        step_1_model.load_state_dict(state['step_1_model'])
+        step2_forward_model.load_state_dict(state['step2_forward_model'])
+        step2_reverse_model.load_state_dict(state['step2_reverse_model'])
+        optimizer.load_state_dict(state['optimizer'])
+        with torch.no_grad():
+            Bert.eval()
+            step_1_model.eval()
+            step2_forward_model.eval()
+            step2_reverse_model.eval()
+
+
     if args.muti_gpu:
         Bert = torch.nn.DataParallel(Bert)
         step_1_model = torch.nn.DataParallel(step_1_model)
@@ -378,8 +396,7 @@ def train(args):
             
             logger.info(('Loss:', tot_loss))
             logger.info(('KL_Loss:', tot_kl_loss))
-            tot_loss = 0
-            tot_kl_loss = 0
+            
 
             print('Evaluating, please wait')
             # aspect_result, opinion_result, apce_result, pair_result, triplet_result = eval(Bert, step_1_model,
@@ -398,6 +415,9 @@ def train(args):
                 'triple recall':triplet_result[1],
                 'triple f1':triplet_result[2]
             })
+
+            tot_loss = 0
+            tot_kl_loss = 0
 
             print('Evaluating complete')
             if aspect_result[2] > best_aspect_f1:
@@ -424,8 +444,8 @@ def train(args):
                 best_pairs_recall = pair_result[1]
                 best_pairs_epoch = i
 
-            if triplet_result[2] > best_triple_f1:
-                model_path = args.model_dir + args.dataset +'_'+ str(triplet_result[2]) + '.pt'
+            if triplet_result[2] > best_triple_f1 or (i == args.epochs - 1) or ((i + 1) % 3 == 0):
+                model_path = "/content/drive/MyDrive/4_proj_ASTE/SBN/savemodel/model_" + str(i) +'_'+ str(triplet_result[2]) + '.pt'
                 state = {
                     "bert_model": Bert.state_dict(),
                     "step_1_model": step_1_model.state_dict(),
@@ -522,10 +542,18 @@ def test(args):
     step2_reverse_model.to(args.device)
     reverse_step2_param_optimizer = list(step2_reverse_model.named_parameters())
 
+    training_param_optimizer = [
+        {'params': [p for n, p in bert_param_optimizer]},
+        {'params': [p for n, p in step_1_param_optimizer], 'lr': args.task_learning_rate},
+        {'params': [p for n, p in forward_step2_param_optimizer], 'lr': args.task_learning_rate},
+        {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
+    optimizer = AdamW(training_param_optimizer, lr=args.learning_rate)
+
     Bert.load_state_dict(state['bert_model'])
     step_1_model.load_state_dict(state['step_1_model'])
     step2_forward_model.load_state_dict(state['step2_forward_model'])
     step2_reverse_model.load_state_dict(state['step2_reverse_model'])
+    optimizer.load_state_dict(state['optimizer'])
 
     print("Model loading ended")
 
@@ -549,7 +577,7 @@ def load_with_single_gpu(model_path):
 def main():
     parser = argparse.ArgumentParser(description="Train scrip")
     parser.add_argument('--model_dir', type=str, default="savemodel/", help='model path prefix')
-    parser.add_argument('--model_to_upload', type=str, default='')
+    parser.add_argument('--model_to_upload', type=str, default=None)
     parser.add_argument('--device', type=str, default="cuda", help='cuda or cpu')
     parser.add_argument("--init_model", default="pretrained_models/bert-base-uncased", type=str, required=False,help="Initial model.")
     parser.add_argument("--init_vocab", default="pretrained_models/bert-base-uncased", type=str, required=False,help="Initial vocab.")

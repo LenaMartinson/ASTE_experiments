@@ -291,8 +291,10 @@ def convert_examples_to_features(args, train_instances, max_span_length=8):
                     related_spans[i, j] = 1
 
         sample['related_span_array'] = related_spans
-        sample['spans'], sample['span tokens'], sample['spans_aspect_label'], sample[
-            'spans_opinion_label'] = spans, span_tokens, spans_aspect_label, spans_opinion_label
+        sample['spans'] = spans
+        sample['span tokens'] = span_tokens
+        sample['spans_aspect_label'] = spans_aspect_label
+        sample['spans_opinion_label'] = spans_opinion_label
         sample['reverse_opinion_label'], sample['reverse_aspect_label'] = reverse_opinion_label, reverse_aspect_label
         features.append(sample)
     return features, num_aspect, num_opinion
