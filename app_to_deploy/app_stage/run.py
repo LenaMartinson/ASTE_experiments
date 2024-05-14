@@ -108,7 +108,7 @@ def test(raw_text, model_func):
                             ).to(args.device)
     
     if args.upload_model is not None:
-        base_model = torch.load(args.upload_model, map_location=torch.device('cpu'))
+        base_model = torch.load(args.upload_model)
         base_model.eval()
     
     test_dataset = ASTE_End2End_Dataset(raw_text,
