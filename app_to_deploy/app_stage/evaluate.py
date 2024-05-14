@@ -2,7 +2,7 @@
 import torch
 import json
 from collections import Counter
-from greedy_inference import loop_version_from_tag_table_to_triplets
+from app_stage.greedy_inference import loop_version_from_tag_table_to_triplets
 
 
 def evaluate_model(model, test_dataset, test_dataloader, id2senti, device='cuda', version = '3D', weight = None, saved_file=None):
