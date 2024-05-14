@@ -4,113 +4,9 @@ import numpy as np
 from collections import Counter
 from torch.utils.data import Dataset
 
-from vocab import *
-from span_tagging import form_raw_table,map_raw_table_to_id
+from app_stage.vocab import *
+from app_stage.span_tagging import form_raw_table,map_raw_table_to_id
 from tqdm import tqdm
-
-# from natasha import (
-#     Segmenter,
-    
-#     NewsEmbedding,
-#     NewsMorphTagger,
-#     NewsSyntaxParser,
-    
-#     Doc
-# )
-
-# segmenter = Segmenter()
-# emb = NewsEmbedding()
-# morph_tagger = NewsMorphTagger(emb)
-# syntax_parser = NewsSyntaxParser(emb)
-
-
-def make_adj_matrix(bert_tokens, tokenizer, max_len, sep_token):
-    sent = []
-    for i in bert_tokens:
-        sent.append(tokenizer.decode([i]))
-        if i == sep_token:
-            break
-    new_sent = ""
-    new_inds = [] # from tokens to poses in text
-    new_inds_mapping = {}
-    index = -1
-    for idx, i in enumerate(sent[1:-1]):
-        if i[:2] == '##':
-            new_sent += i[2:]
-        else:
-            new_sent += " "
-            new_sent += i
-            index += 1
-        new_inds.append(index)
-
-    new_inds_mapping[0] = [0]
-    for idx, i in enumerate(new_inds):
-        if new_inds_mapping.get(i + 1):
-            new_inds_mapping[i + 1].append(idx + 1)
-        else:
-            new_inds_mapping[i + 1] = [idx + 1]
-
-    new_sent = new_sent.strip()
-    text = new_sent
-
-    splitted_text = text.split(" ")
-
-    doc = Doc(text)
-    doc.segment(segmenter)
-    doc.tag_morph(morph_tagger)
-    doc.parse_syntax(syntax_parser)
-    
-    doc_sents_lens = [0]
-    for i in doc.sents:
-        doc_sents_lens.append(doc_sents_lens[-1] + len(i.tokens))
-    
-    cnt = 0
-    i = 0
-    j = 0
-    splitted_mapping = {0:[0]} # from poses from the text to segmented words
-    while i < len(doc.tokens) and j < len(splitted_text):
-        cur_nat_text = doc.tokens[i].text
-        cur_our_text = splitted_text[j]
-        if cur_nat_text == cur_our_text:
-            splitted_mapping[i + 1] = [j + 1]
-            i += 1
-            j += 1
-        else:
-            splitted_mapping[i + 1] = [j + 1]
-            if len(cur_nat_text) < len(cur_our_text):
-                while cur_nat_text != cur_our_text:
-                    i += 1
-                    splitted_mapping[i + 1] = [j + 1]
-
-                    cur_nat_text += doc.tokens[i].text
-            elif len(cur_nat_text) > len(cur_our_text):
-                while cur_nat_text != cur_our_text:
-                    j += 1
-                    splitted_mapping[i + 1].append(j + 1)
-                    cur_our_text += splitted_text[j]
-            else:
-                raise "???"
-            i += 1
-            j += 1
-
-    adj_matrix = np.eye(max_len, max_len)
-
-    for i in doc.tokens:
-        sent_id, cur_id = [int(j)  for j in i.id.split('_')]
-        head_sent_id, head_id = [int(j) for j in i.head_id.split('_')]
-        cur_words_ids = []
-        for j in splitted_mapping[doc_sents_lens[sent_id - 1] + cur_id]:
-            for k in new_inds_mapping[j]:
-                cur_words_ids.append(k)
-        cur_words_head_ids = []
-        for j in splitted_mapping[doc_sents_lens[head_sent_id - 1] + head_id]:
-            for k in new_inds_mapping[j]:
-                cur_words_head_ids.append(k)
-        for i in cur_words_ids:
-            for j in cur_words_head_ids:
-                adj_matrix[i][j] = 1
-
-    return torch.FloatTensor(adj_matrix).to_sparse()
 
 
 class ASTE_End2End_Dataset(Dataset):
@@ -175,11 +71,9 @@ class ASTE_End2End_Dataset(Dataset):
             bert_token = CLS_id + text_raw_bert_indices + SEP_id
             
             tok = tok[:length]
-            # adj_matrix = make_adj_matrix(bert_token, self.tokenizer, self.max_len, SEP_id)
             tok = [token_vocab.stoi.get(t, token_vocab.unk_index) for t in tok]
             
             temp = {
-                # 'adj_matrix': adj_matrix,
                 'token': tok,
                 'token_length': length,
                 'bert_token': bert_token,
@@ -198,7 +92,6 @@ def ASTE_collate_fn(batch):
     
     token = get_long_tensor([ batch[i]['token'] for i in range(batch_size)])
     
-    # adj_matrix = torch.cat([batch[i]['adj_matrix'].unsqueeze(0) for i in range(batch_size)], axis=0)
     token_length = torch.tensor([batch[i]['token_length'] for i in range(batch_size)])
     bert_token = get_long_tensor([batch[i]['bert_token'] for i in range(batch_size)])
     bert_length = torch.tensor([batch[i]['bert_length'] for i in range(batch_size)])
@@ -213,7 +106,6 @@ def ASTE_collate_fn(batch):
     golden_label = torch.from_numpy(golden_label)
     
     re_batch = {
-        # 'adj_matrix': adj_matrix,
         'token' : token,
         'token_length' : token_length,
         'bert_token' : bert_token,
