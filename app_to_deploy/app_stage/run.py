@@ -5,16 +5,13 @@ import torch
 import random
 import argparse
 import numpy as np
-from tqdm import tqdm
 
 from transformers import BertTokenizer
 from torch.utils.data import DataLoader
 
-from ASTE_dataloader import ASTE_End2End_Dataset, ASTE_collate_fn,load_vocab
-from span_tagging import form_label_id_map, form_sentiment_id_map
-from evaluate import evaluate_model,print_evaluate_dict
-# from gcn import GCN
-
+from app_stage.ASTE_dataloader import ASTE_End2End_Dataset, ASTE_collate_fn,load_vocab
+from app_stage.span_tagging import form_label_id_map, form_sentiment_id_map
+from app_stage.evaluate import evaluate_model
 
 
 
