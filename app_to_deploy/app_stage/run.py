@@ -214,9 +214,9 @@ def get_parameters():
 
 
 def run(raw_text):
-    from model import base_model
-    args = get_parameters()
-#     args.with_weight = True # default true here
+    from app_stage.model import base_model
+    # args = get_parameters()
+    # args.with_weight = True # default true here
         
     preds = test(raw_text, base_model)
     return preds

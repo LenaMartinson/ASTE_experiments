@@ -53,7 +53,7 @@ palette = {
 }
 
 if submit:
-    preds = run("{}####[]\n".format(sentence))
+    preds = run(sentence)
     if preds is None:
         st.write("No triplets are found :(")
     else:
@@ -96,4 +96,3 @@ if submit:
             new_sent.append(" ")
         print(new_sent)
         annotated_text(new_sent)
-    # st.write(str(preds))
