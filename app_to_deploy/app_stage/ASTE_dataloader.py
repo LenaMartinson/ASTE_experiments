@@ -149,7 +149,7 @@ def line2dict(l, is_clean=False):
 def build_vocab(dataset):
     tokens = []
     
-    files = ['train_full.txt']
+    files = ['app_to_deploy/app_stage/train_full.txt']
     for file_name in files:
         file_path = file_name
         with open(file_path,'r',encoding='utf-8') as f:
