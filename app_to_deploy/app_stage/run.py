@@ -68,7 +68,7 @@ class Args:
         self.adam_epsilon = 1e-8
         self.class_n = 6
 
-        self.upload_model = 'model_13_best.pkl'
+        self.upload_model = 'app_to_deploy/stageI_model_8_best.pkl'
 
 
 def test(raw_text, model_func):
@@ -108,7 +108,8 @@ def test(raw_text, model_func):
                             ).to(args.device)
     
     if args.upload_model is not None:
-        base_model = torch.load(args.upload_model, map_location=torch.device('cpu'))
+        # base_model = torch.load(args.upload_model)
+        base_model.load_state_dict(torch.load(args.upload_model))
         base_model.eval()
     
     test_dataset = ASTE_End2End_Dataset(raw_text,
