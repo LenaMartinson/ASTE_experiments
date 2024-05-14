@@ -5,4 +5,4 @@ torch
 transformers
 tqdm
 natasha
-annotated_text
+st-annotated-text
