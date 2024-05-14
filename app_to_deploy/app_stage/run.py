@@ -68,7 +68,7 @@ class Args:
         self.adam_epsilon = 1e-8
         self.class_n = 6
 
-        self.upload_model = 'model_13_best.pkl'
+        self.upload_model = 'app_to_deploy/model_13_best.pkl'
 
 
 def test(raw_text, model_func):
