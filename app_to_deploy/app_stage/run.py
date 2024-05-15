@@ -83,7 +83,7 @@ config = {
 
 
 def model_init():
-    from model import base_model
+    from app_stage.model import base_model
 
     args = Args()
     print('> Load model...')
