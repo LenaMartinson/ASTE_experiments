@@ -82,7 +82,18 @@ config = {
 }
 
 
-def test(raw_text, model_func):
+def model_init():
+    from model import base_model
+
+    args = Args()
+    print('> Load model...')
+    model = base_model(**config).to(args.device)
+    
+    model = base_model.from_pretrained("lmartinson/aste_stage_ver3")
+    return model
+
+
+def test(raw_text, base_model):
 
     args = Args()
     
@@ -105,12 +116,7 @@ def test(raw_text, model_func):
         weight = form_weight_n(class_n).to(args.device)
     print('> label2id:', label2id)
     print('> weight:', args.with_weight, weight)
-    print(args)
-
-    print('> Load model...')
-    base_model = model_func(**config).to(args.device)
     
-    base_model = model_func.from_pretrained("lmartinson/aste_stage_ver3")
     
     test_dataset = ASTE_End2End_Dataset(raw_text,
                                         version = args.version,
@@ -214,10 +220,7 @@ def get_parameters():
     return args
 
 
-def run(raw_text):
-    from app_stage.model import base_model
-    # args = get_parameters()
-    # args.with_weight = True # default true here
+def run(raw_text, base_model):
         
     preds = test(raw_text, base_model)
     return preds

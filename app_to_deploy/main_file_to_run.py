@@ -1,6 +1,6 @@
 import streamlit as st
 from annotated_text import annotated_text
-from app_stage.run import run
+from app_stage.run import run, model_init
 from prepare_text import prepare_text
 
 
@@ -9,7 +9,6 @@ text_box = st.form('users_text')
 st.write("Choose model types:")
 sbn_model_use = st.checkbox('SBN')
 stage_model_use = st.checkbox('STAGE')
-# using_model = st.multiselect("Model for use:", options=['SBN', 'STAGE'], default='STAGE')
 
 
 sentence = text_box.text_area('Your comment:', height=150)
@@ -52,9 +51,13 @@ palette = {
     ]
 }
 
+stage_model = model_init()
+
 if submit:
-    preds = run(sentence)
-    if preds is None:
+    stage_preds = None
+    if stage_model_use:
+        stage_preds = run("{}####[]\n".format(sentence), stage_model)
+    if stage_preds is None:
         st.write("No triplets are found :(")
     else:
         sent = sentence.split(" ")
@@ -66,7 +69,7 @@ if submit:
             'NEU': 0
         }
         neg_i = 0
-        for pred in preds[0]:
+        for pred in stage_preds[0]:
             for i in range(pred[0][0], pred[0][1] + 1):
                 if i in aspect_list:
                     sent[i][1] += str(link_i[pred[2]])
@@ -80,13 +83,7 @@ if submit:
                 sent[i] = [sent[i], 'O_' + str(link_i[pred[2]]), palette[pred[2]][link_i[pred[2]]]]
                 opinion_list.add(i)
             link_i[pred[2]] += 1
-            # a = ""
-            # for i in pred[0][:-1]:
-            #     a += sent[i]
-            # b = ""
-            # for i in pred[1][:-1]:
-            #     b += sent[i]
-            # st.write(a, b, pred[2])
+
         new_sent = []
         for i in sent:
             if type(i) is list:
