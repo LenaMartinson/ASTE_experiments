@@ -4,20 +4,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertModel
 from transformers.models.bert.modeling_bert import BertEmbeddings
+from huggingface_hub import PyTorchModelHubMixin
 # from gcn import GCN
 
 
 class base_model(nn.Module):
-    def __init__(self, pretrained_model_path, hidden_dim, dropout, args, class_n=16, 
-                 span_average = False, gcn_num_layers=1, gcn_dropout=0.7):
+    def __init__(self, pretrained_model_path, hidden_dim, dropout, device, class_n=16, 
+                 span_average = False, add_pos_enc=False, gcn_num_layers=1, gcn_dropout=0.7):
         super().__init__()
         
-        self.device = args.device
+        self.device = device
         
         # Encoder
         self.bert = BertModel.from_pretrained(pretrained_model_path)
         bert_config = self.bert.config
-        if args.add_pos_enc:
+        if add_pos_enc:
             print("Change pos_embeddings to 1536 len...")
 
             # word_emb

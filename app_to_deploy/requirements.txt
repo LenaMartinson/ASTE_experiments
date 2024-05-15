@@ -6,3 +6,4 @@ transformers
 tqdm
 natasha
 st-annotated-text
+huggingface_hub

@@ -68,7 +68,18 @@ class Args:
         self.adam_epsilon = 1e-8
         self.class_n = 6
 
-        self.upload_model = 'app_to_deploy/stageI_model_8_best.pkl'
+
+config = {
+    "pretrained_model_path": 'ai-forever/ruBert-base',
+    "hidden_dim": 64,
+    "dropout": 0.5,
+    "class_n": 6,
+    "add_pos_enc": True,
+    "device": "cpu",
+    "span_average": False,
+    "gcn_num_layers": 3,
+    "gcn_dropout": 0.5
+}
 
 
 def test(raw_text, model_func):
@@ -97,20 +108,9 @@ def test(raw_text, model_func):
     print(args)
 
     print('> Load model...')
-    base_model = model_func(pretrained_model_path = args.pretrained_model,
-                            hidden_dim = args.hidden_dim,
-                            dropout = args.dropout_rate,
-                            args = args,
-                            class_n = class_n,
-                            span_average = args.span_average,
-                            gcn_num_layers=3, 
-                            gcn_dropout=0.5
-                            ).to(args.device)
+    base_model = model_func(**config).to(args.device)
     
-    if args.upload_model is not None:
-        # base_model = torch.load(args.upload_model)
-        base_model.load_state_dict(torch.load(args.upload_model))
-        base_model.eval()
+    base_model = model_func.from_pretrained("lmartinson/aste_stage_ver3")
     
     test_dataset = ASTE_End2End_Dataset(raw_text,
                                         version = args.version,
