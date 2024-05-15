@@ -1,10 +1,10 @@
 
 import os
-import time
 import torch
 import random
 import argparse
 import numpy as np
+import streamlit as st
 
 from transformers import BertTokenizer
 from torch.utils.data import DataLoader
@@ -81,7 +81,7 @@ config = {
     "gcn_dropout": 0.5
 }
 
-
+@st.cache_data
 def model_init():
     from app_stage.model import base_model
 
