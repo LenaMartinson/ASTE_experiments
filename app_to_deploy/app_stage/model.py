@@ -8,7 +8,7 @@ from huggingface_hub import PyTorchModelHubMixin
 # from gcn import GCN
 
 
-class base_model(nn.Module):
+class base_model(nn.Module, PyTorchModelHubMixin):
     def __init__(self, pretrained_model_path, hidden_dim, dropout, device, class_n=16, 
                  span_average = False, add_pos_enc=False, gcn_num_layers=1, gcn_dropout=0.7):
         super().__init__()
