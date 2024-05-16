@@ -20,9 +20,6 @@ sentence = prepare_text(sentence)
 if len(sentence) == 0:
     st.write("Empty comment")
 
-with open('test_triplets.txt', 'w') as f:
-    f.write("{}####[]\n".format(sentence))
-
 palette = {
     'POS':[
         "#45ff9d",
@@ -52,14 +49,12 @@ palette = {
 }
 
 if stage_model_use:
-    print('init model...')
     stage_model = model_init()
-    print('model initted...')
 
 if submit:
     stage_preds = None
     if stage_model_use:
-        stage_preds = run("{}####[]\n".format(sentence), stage_model)
+        stage_preds = run(sentence, stage_model)
     if stage_preds is None:
         st.write("No triplets are found :(")
     else:
