@@ -81,7 +81,7 @@ config = {
     "gcn_dropout": 0.5
 }
 
-@st.cache_data
+@st.cache_resource
 def model_init():
     from app_stage.model import base_model
 

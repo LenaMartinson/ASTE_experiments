@@ -51,7 +51,10 @@ palette = {
     ]
 }
 
-stage_model = model_init()
+if stage_model_use:
+    print('init model...')
+    stage_model = model_init()
+    print('model initted...')
 
 if submit:
     stage_preds = None
