@@ -23,4 +23,4 @@ def prepare_text(text):
 
     prepared_text = " ".join([j.text for j in doc.tokens])
 
-    return "{}####[]\n".format(prepared_text)
+    return prepared_text

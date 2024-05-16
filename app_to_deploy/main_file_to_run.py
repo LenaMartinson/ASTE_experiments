@@ -54,7 +54,7 @@ if stage_model_use:
 if submit:
     stage_preds = None
     if stage_model_use:
-        stage_preds = run(sentence, stage_model)
+        stage_preds = run("{}####[]\n".format(sentence), stage_model)
     if stage_preds is None:
         st.write("No triplets are found :(")
     else:
