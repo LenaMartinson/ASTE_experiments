@@ -6,7 +6,6 @@ from torch.utils.data import Dataset
 
 from app_stage.vocab import *
 from app_stage.span_tagging import form_raw_table,map_raw_table_to_id
-from tqdm import tqdm
 
 
 class ASTE_End2End_Dataset(Dataset):
@@ -49,7 +48,7 @@ class ASTE_End2End_Dataset(Dataset):
         CLS_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.cls_token])
         SEP_id = self.tokenizer.convert_tokens_to_ids([self.tokenizer.sep_token])
         
-        for d in tqdm(data, 'Loading data...'):
+        for d in data:
             golden_label = map_raw_table_to_id(form_raw_table(d, version=version), label2id) if 'triplets' in d else None
             tok = d['token']
             if self.lower:
