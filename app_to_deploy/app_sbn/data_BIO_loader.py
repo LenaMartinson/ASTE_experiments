@@ -305,18 +305,13 @@ def convert_examples_to_features(args, train_instances, max_span_length=8):
 
 
 class MyDataset:
-    def __init__(self, args, path, if_train=False):
+    def __init__(self, args, test_data, if_train=False):
         self.args = args
-        with open(path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            if if_train:
-                random.seed(args.RANDOM_SEED)
-                random.shuffle(lines)
-            self.instances = load_data_instances_txt(lines)
-            self.data_instances, _, _ = convert_examples_to_features(
-                self.args, 
-                train_instances=self.instances,
-                max_span_length=self.args.max_span_length)
+        self.instances = load_data_instances_txt(test_data)
+        self.data_instances, _, _ = convert_examples_to_features(
+            self.args, 
+            train_instances=self.instances,
+            max_span_length=self.args.max_span_length)
 
     def __len__(self):
         return len(self.data_instances)
