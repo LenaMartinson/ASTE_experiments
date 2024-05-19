@@ -3,12 +3,6 @@ from annotated_text import annotated_text
 from app_stage.run import run, model_init
 from app_sbn.run import test, sbn_models_init
 from prepare_text import prepare_text
-
-import streamlit as st
-from annotated_text import annotated_text
-from app_stage.run import run, model_init
-from app_sbn.run import test, sbn_models_init
-from prepare_text import prepare_text
 import ast
 
 text_box = st.form('users_text')
