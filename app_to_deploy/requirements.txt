@@ -5,3 +5,4 @@ transformers
 natasha
 st-annotated-text
 huggingface_hub
+allennlp
