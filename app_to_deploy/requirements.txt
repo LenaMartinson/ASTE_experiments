@@ -1,3 +1,4 @@
+allennlp
 streamlit
 numpy
 torch
@@ -5,4 +6,3 @@ transformers
 natasha
 st-annotated-text
 huggingface_hub
-allennlp
