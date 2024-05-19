@@ -1,7 +1,7 @@
 allennlp==2.10.1
 streamlit==1.34.0
 numpy==1.26.4
-torch==1.12.1
+torch
 transformers==4.20.1
 natasha==1.6.0
 st-annotated-text==4.0.1
