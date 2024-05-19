@@ -119,6 +119,8 @@ class Step_1(torch.nn.Module, PyTorchModelHubMixin):
         self.span_generation = span_generation
         self.bert_feature_dim = bert_feature_dim
         self.related_span_underline = related_span_underline
+        self.device = 'cpu'
+        self.max_span_length = 3
         # self.bert_config = bert_config
         self.dropout_output = torch.nn.Dropout(drop_out)
         if span_generation == "Start_end":
