@@ -214,7 +214,7 @@ class Args:
         self.random_shuffle=1
         self.related_span_block_num=1
         self.related_span_underline=False
-        self.span_generation="CNN"
+        self.span_generation="Max"
         self.task_learning_rate=0.0001
         self.train_batch_size=4
         self.warm_up=0.1

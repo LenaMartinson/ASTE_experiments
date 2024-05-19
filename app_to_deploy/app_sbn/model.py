@@ -8,6 +8,80 @@ from app_sbn.data_BIO_loader import sentiment2id, validity2id
 import random
 import math
 from huggingface_hub import PyTorchModelHubMixin
+from typing import Optional
+
+
+def get_range_vector(size: int, device: int) -> torch.Tensor:
+    """
+    Returns a range vector with the desired size, starting at 0. The CUDA implementation
+    is meant to avoid copy data from CPU to GPU.
+    """
+    if device > -1:
+        return torch.cuda.LongTensor(size, device=device).fill_(1).cumsum(0) - 1
+    else:
+        return torch.arange(0, size, dtype=torch.long)
+    
+
+def flatten_and_batch_shift_indices(indices: torch.Tensor, sequence_length: int) -> torch.Tensor:
+    if torch.max(indices) >= sequence_length or torch.min(indices) < 0:
+        raise 'error :('
+    offsets = get_range_vector(indices.size(0), -1) * sequence_length
+    for _ in range(len(indices.size()) - 1):
+        offsets = offsets.unsqueeze(1)
+
+    # Shape: (batch_size, d_1, ..., d_n)
+    offset_indices = indices + offsets
+
+    # Shape: (batch_size * d_1 * ... * d_n)
+    offset_indices = offset_indices.view(-1)
+    return offset_indices
+
+
+def batched_index_select(
+    target: torch.Tensor,
+    indices: torch.LongTensor,
+    flattened_indices: Optional[torch.LongTensor] = None,
+) -> torch.Tensor:
+    
+    if flattened_indices is None:
+        # Shape: (batch_size * d_1 * ... * d_n)
+        flattened_indices = flatten_and_batch_shift_indices(indices, target.size(1))
+
+    # Shape: (batch_size * sequence_length, embedding_size)
+    flattened_target = target.view(-1, target.size(-1))
+
+    # Shape: (batch_size * d_1 * ... * d_n, embedding_size)
+    flattened_selected = flattened_target.index_select(0, flattened_indices)
+    selected_shape = list(indices.size()) + [target.size(-1)]
+    # Shape: (batch_size, d_1, ..., d_n, embedding_size)
+    selected_targets = flattened_selected.view(*selected_shape)
+    return selected_targets
+    
+
+def batched_span_select(target: torch.Tensor, spans: torch.LongTensor) -> torch.Tensor:
+    span_starts, span_ends = spans.split(1, dim=-1)
+
+    # shape (batch_size, num_spans, 1)
+    # These span widths are off by 1, because the span ends are `inclusive`.
+    span_widths = span_ends - span_starts
+
+    max_batch_span_width = span_widths.max().item() + 1
+
+    # Shape: (1, 1, max_batch_span_width)
+    max_span_range_indices = get_range_vector(max_batch_span_width, -1).view(
+        1, 1, -1
+    )
+
+    span_mask = max_span_range_indices <= span_widths
+    raw_span_indices = span_starts + max_span_range_indices
+
+    span_mask = span_mask & (raw_span_indices < target.size(1)) & (0 <= raw_span_indices)
+    span_indices = raw_span_indices * span_mask
+
+    span_embeddings = batched_index_select(target, span_indices)
+
+    return span_embeddings, span_mask
+
 
 
 def stage_2_features_generation(bert_feature, attention_mask, spans, span_mask, spans_embedding, spans_aspect_tensor,
