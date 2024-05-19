@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 from app_sbn.Attention import Attention, Intermediate, Output, Dim_Four_Attention, masked_softmax
 from app_sbn.data_BIO_loader import sentiment2id, validity2id
-from allennlp.nn.util import batched_index_select, batched_span_select
+# from allennlp.nn.util import batched_index_select, batched_span_select
 import random
 import math
 from huggingface_hub import PyTorchModelHubMixin
