@@ -48,7 +48,8 @@ def eval(bert_model, step_1_model, step_2_forward, step_2_reverse, dataset, args
             gcn_model.eveal()
         if args.use_symux:
             symux_encoder.eval()
-        bert_model.eval()
+        else:
+            bert_model.eval()
         step_1_model.eval()
         step_2_forward.eval()
         step_2_reverse.eval()
@@ -72,8 +73,9 @@ def eval(bert_model, step_1_model, step_2_forward, step_2_reverse, dataset, args
             spans_aspect_tensor, spans_opinion_label_tensor, reverse_ner_label_tensor, reverse_opinion_tensor, \
             reverse_aspect_label_tensor, related_spans_tensor, sentence_length = dataset.get_batch(j)
 
-            bert_output = bert_model(input_ids=tokens_tensor, attention_mask=attention_mask)
-            bert_out = bert_output.last_hidden_state
+            if not args.use_symux:
+                bert_output = bert_model(input_ids=tokens_tensor, attention_mask=attention_mask)
+                bert_out = bert_output.last_hidden_state
             
             if args.use_symux or args.use_gcn:
                 sentence_adj = []
@@ -295,42 +297,47 @@ def train(args):
     logger.info('The test set is loaded')
     print('-------------------------------')
     
-    gcn = GCN(emb_dim=args.bert_feature_dim).to(args.device)
-    gcn_param_optimizer = list(gcn.named_parameters())
+    if args.use_gcn:
+        gcn = GCN(emb_dim=args.bert_feature_dim).to(args.device)
+        gcn_param_optimizer = list(gcn.named_parameters())
 
-    Bert = BertModel.from_pretrained(args.init_model)
-    bert_config = Bert.config
+    if not args.use_symux:
+        Bert = BertModel.from_pretrained(args.init_model)
+        bert_config = Bert.config
 
-    if args.add_pos_enc:
-        print("Change pos_embeddings to 1536 len...")
+        if args.add_pos_enc:
+            print("Change pos_embeddings to 1536 len...")
 
-        # word_emb
-        word_emb = Bert.embeddings.word_embeddings.weight.data
+            # word_emb
+            word_emb = Bert.embeddings.word_embeddings.weight.data
 
-        # token_type_emb
-        token_type_emb = Bert.embeddings.token_type_embeddings.weight.data
+            # token_type_emb
+            token_type_emb = Bert.embeddings.token_type_embeddings.weight.data
 
-        # pos_enc
-        pos_enc = Bert.embeddings.position_embeddings.weight.data
-        new_pos_enc = torch.concat((pos_enc, pos_enc * 2, pos_enc * 4), axis=0)
-        # new_pos_enc = torch.repeat_interleave(pos_enc, 3, dim=0)
+            # pos_enc
+            pos_enc = Bert.embeddings.position_embeddings.weight.data
+            new_pos_enc = torch.concat((pos_enc, pos_enc * 2, pos_enc * 4), axis=0)
+            # new_pos_enc = torch.repeat_interleave(pos_enc, 3, dim=0)
 
-        # new config and embeddings structure
-        bert_config.update({'max_position_embeddings': 1536})
-        Bert.embeddings = BertEmbeddings(bert_config)
+            # new config and embeddings structure
+            bert_config.update({'max_position_embeddings': 1536})
+            Bert.embeddings = BertEmbeddings(bert_config)
 
-        # return pretrained weights
-        Bert.embeddings.word_embeddings.weight.data = word_emb
-        Bert.embeddings.token_type_embeddings.weight.data = token_type_emb
-        Bert.embeddings.position_embeddings.weight.data = new_pos_enc
+            # return pretrained weights
+            Bert.embeddings.word_embeddings.weight.data = word_emb
+            Bert.embeddings.token_type_embeddings.weight.data = token_type_emb
+            Bert.embeddings.position_embeddings.weight.data = new_pos_enc
 
-        print("Changed successful!")
-    
+            print("Changed successful!")
+        
+        Bert.to(args.device)
+        bert_param_optimizer = list(Bert.named_parameters())
+    else:
+        symux_encoder = SyMuxEncoder(args).to(args.device)
+        symux_param_optimizer = list(symux_encoder.named_parameters())
+        bert_config = symux_encoder.bert.config
 
-    symux_encoder = SyMuxEncoder(args).to(args.device)
 
-    Bert.to(args.device)
-    bert_param_optimizer = list(Bert.named_parameters())
 
     step_1_model = Step_1(args, bert_config)
     step_1_model.to(args.device)
@@ -344,12 +351,25 @@ def train(args):
     step2_reverse_model.to(args.device)
     reverse_step2_param_optimizer = list(step2_reverse_model.named_parameters())
 
-    training_param_optimizer = [
-        {'params': [p for n, p in gcn_param_optimizer]},
-        {'params': [p for n, p in bert_param_optimizer]},
-        {'params': [p for n, p in step_1_param_optimizer], 'lr': args.task_learning_rate},
-        {'params': [p for n, p in forward_step2_param_optimizer], 'lr': args.task_learning_rate},
-        {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
+    if args.use_symux:
+        training_param_optimizer = [
+            {'params': [p for n, p in symux_param_optimizer]},
+            {'params': [p for n, p in step_1_param_optimizer], 'lr': args.task_learning_rate},
+            {'params': [p for n, p in forward_step2_param_optimizer], 'lr': args.task_learning_rate},
+            {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
+    elif args.use_gcn:
+        training_param_optimizer = [
+            {'params': [p for n, p in gcn_param_optimizer]},
+            {'params': [p for n, p in bert_param_optimizer]},
+            {'params': [p for n, p in step_1_param_optimizer], 'lr': args.task_learning_rate},
+            {'params': [p for n, p in forward_step2_param_optimizer], 'lr': args.task_learning_rate},
+            {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
+    else:
+        training_param_optimizer = [
+            {'params': [p for n, p in bert_param_optimizer]},
+            {'params': [p for n, p in step_1_param_optimizer], 'lr': args.task_learning_rate},
+            {'params': [p for n, p in forward_step2_param_optimizer], 'lr': args.task_learning_rate},
+            {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
     optimizer = AdamW(training_param_optimizer, lr=args.learning_rate)
 
     if args.model_to_upload != None:
@@ -390,8 +410,12 @@ def train(args):
 
 
     if args.multi_gpu:
-        gcn = torch.nn.DataParallel(gcn)
-        Bert = torch.nn.DataParallel(Bert)
+        if args.use_symux:
+            symux_encoder = torch.nn.DataParallel(symux_encoder)
+        if args.use_gcn:
+            gcn = torch.nn.DataParallel(gcn)
+        if not args.use_symux:
+            Bert = torch.nn.DataParallel(Bert)
         step_1_model = torch.nn.DataParallel(step_1_model)
         step2_forward_model = torch.nn.DataParallel(step2_forward_model)
         step2_reverse_model = torch.nn.DataParallel(step2_reverse_model)  
@@ -429,57 +453,56 @@ def train(args):
                     gcn.train()
                 if args.use_symux:
                     symux_encoder.train()
-                Bert.train()
+                else:
+                    Bert.train()
                 step_1_model.train()
                 step2_forward_model.train()
                 step2_reverse_model.train()
                 
                 
-                if j == 1:
-                    start = time.time()
                 optimizer.zero_grad()
 
                 tokens_tensor, attention_mask, bert_spans_tensor, spans_mask_tensor, spans_ner_label_tensor, \
                 spans_aspect_tensor, spans_opinion_label_tensor, reverse_ner_label_tensor, reverse_opinion_tensor, \
                 reverse_aspect_label_tensor, related_spans_tensor, sentence_length = trainset.get_batch(j)
                 
-                bert_output = Bert(input_ids=tokens_tensor, attention_mask=attention_mask)
+                if not args.use_symux:
+                    bert_output = Bert(input_ids=tokens_tensor, attention_mask=attention_mask)
+                    bert_out = bert_output.last_hidden_state
             
-#             bert_out = bert_output.last_hidden_state
-            
-            if args.use_symux or args.use_gcn:
-                sentence_adj = []
-                sentence_pos = []
-                diff_sentence_adj = []
-                max_batch_len = 0
-                for sent in sentence_length:
-                    max_batch_len = max(max_batch_len, len(sent[0]))
-                for sent in sentence_length:
-                    sent_adj, diff_sent_adj, sent_pos_tags = make_adj_matrix(sent[0], 
-                                                                            max_batch_len, 
-                                                                            args.add_pos_mode, 
-                                                                            args.add_simple_mode) 
-                    sentence_adj.append(sent_adj)
-                    sentence_pos.append(sent_pos_tags)
-                    diff_sentence_adj.append(diff_sent_adj)
-                sentence_adj = torch.cat([i.unsqueeze(0) for i in sentence_adj], axis=0).to_dense().to(args.device)
-                diff_sentence_adj = torch.cat([i.unsqueeze(0) for i in diff_sentence_adj], axis=0).to_dense().to(args.device)
-                sentence_pos = torch.cat([i.unsqueeze(0) for i in sentence_pos], axis=0).to(args.device)
+                if args.use_symux or args.use_gcn:
+                    sentence_adj = []
+                    sentence_pos = []
+                    diff_sentence_adj = []
+                    max_batch_len = 0
+                    for sent in sentence_length:
+                        max_batch_len = max(max_batch_len, len(sent[0]))
+                    for sent in sentence_length:
+                        sent_adj, diff_sent_adj, sent_pos_tags = make_adj_matrix(sent[0], 
+                                                                                max_batch_len, 
+                                                                                args.add_pos_mode, 
+                                                                                args.add_simple_mode) 
+                        sentence_adj.append(sent_adj)
+                        sentence_pos.append(sent_pos_tags)
+                        diff_sentence_adj.append(diff_sent_adj)
+                    sentence_adj = torch.cat([i.unsqueeze(0) for i in sentence_adj], axis=0).to_dense().to(args.device)
+                    diff_sentence_adj = torch.cat([i.unsqueeze(0) for i in diff_sentence_adj], axis=0).to_dense().to(args.device)
+                    sentence_pos = torch.cat([i.unsqueeze(0) for i in sentence_pos], axis=0).to(args.device)
 
-                if args.use_symux:
-                    encoder_output, dep_output = symux_encoder(
-                        input_ids=tokens_tensor[:, :max_batch_len].to("cuda:0"), 
-                        input_masks=attention_mask[:, :max_batch_len].to("cuda:0"),
-                        simple_graph=sentence_adj,
-                        graph=diff_sentence_adj, 
-                        pos=sentence_pos, 
-                        output_attention=False
-                    )
-                    bert_out = encoder_output
+                    if args.use_symux:
+                        encoder_output, dep_output = symux_encoder(
+                            input_ids=tokens_tensor[:, :max_batch_len].to("cuda:0"), 
+                            input_masks=attention_mask[:, :max_batch_len].to("cuda:0"),
+                            simple_graph=sentence_adj,
+                            graph=diff_sentence_adj, 
+                            pos=sentence_pos, 
+                            output_attention=False
+                        )
+                        bert_out = encoder_output
 
-                if args.use_gcn:
-                    h_gcn, _ = gcn(sentence_adj, bert_output.last_hidden_state, args.device)
-                    bert_out = bert_output.last_hidden_state  + h_gcn
+                    if args.use_gcn:
+                        h_gcn, _ = gcn(sentence_adj, bert_output.last_hidden_state, args.device)
+                        bert_out = bert_output.last_hidden_state  + h_gcn
                 
                 aspect_class_logits, opinion_class_logits, spans_embedding, forward_embedding, reverse_embedding, \
                     cnn_spans_mask_tensor = step_1_model(bert_out,
@@ -566,125 +589,6 @@ def train(args):
     eval(gcn, Bert, step_1_model, step2_forward_model, step2_reverse_model, testset, args, mode='test')
     if args.wandb_logging:
         wandb.finish()
-
-
-def test(args):
-#     test_path = '/kaggle/input/dataset-sentences-with-fake-start/test_no_right_answers.txt'
-    test_path = args.dataset_path
-
-    print('-------------------------------')
-    print('Start loading the test set')
-    logger.info('Start loading the test set')
-    test_datasets = MyDataset(args, test_path, if_train=False)
-    testset = DataTterator(test_datasets, args)
-    print('The test set is loaded')
-    logger.info('The test set is loaded')
-    print('-------------------------------')
-
-    print('Start loading model...')
-
-    model_path = args.model_to_upload
-    if args.device == 'cpu':
-        state = torch.load(model_path, map_location=torch.device('cpu'))
-    else:
-        state = torch.load(model_path)
-        # state = load_with_single_gpu(model_path)
-
-    Bert = BertModel.from_pretrained(args.init_model)
-    bert_config = Bert.config
-    
-    if args.add_pos_enc:
-        print("Change pos_embeddings to 1536 len...")
-
-        # word_emb
-        word_emb = Bert.embeddings.word_embeddings.weight.data
-
-        # token_type_emb
-        token_type_emb = Bert.embeddings.token_type_embeddings.weight.data
-
-        # pos_enc
-        pos_enc = Bert.embeddings.position_embeddings.weight.data
-        new_pos_enc = torch.concat((pos_enc, pos_enc, pos_enc), axis=0)
-
-        # new config and embeddings structure
-        bert_config.update({'max_position_embeddings': 1536})
-        Bert.embeddings = BertEmbeddings(bert_config)
-
-        # return pretrained weights
-        Bert.embeddings.word_embeddings.weight.data = word_emb
-        Bert.embeddings.token_type_embeddings.weight.data = token_type_emb
-        Bert.embeddings.position_embeddings.weight.data = new_pos_enc
-
-        print("Changed successful!")
-    
-    
-    Bert.to(args.device)
-    bert_param_optimizer = list(Bert.named_parameters())
-
-    step_1_model = Step_1(args, bert_config)
-    step_1_model.to(args.device)
-    step_1_param_optimizer = list(step_1_model.named_parameters())
-
-    step2_forward_model = Step_2_forward(args, bert_config)
-    step2_forward_model.to(args.device)
-    forward_step2_param_optimizer = list(step2_forward_model.named_parameters())
-
-    step2_reverse_model = Step_2_reverse(args, bert_config)
-    step2_reverse_model.to(args.device)
-    reverse_step2_param_optimizer = list(step2_reverse_model.named_parameters())
-
-    training_param_optimizer = [
-        {'params': [p for n, p in bert_param_optimizer]},
-        {'params': [p for n, p in step_1_param_optimizer], 'lr': args.task_learning_rate},
-        {'params': [p for n, p in forward_step2_param_optimizer], 'lr': args.task_learning_rate},
-        {'params': [p for n, p in reverse_step2_param_optimizer], 'lr': args.task_learning_rate}]
-    optimizer = AdamW(training_param_optimizer, lr=args.learning_rate)
-
-    
-    if args.model_to_upload != None:
-        model_path = args.model_to_upload
-        if args.device == 'cpu':
-            state = torch.load(model_path, map_location=torch.device('cpu'))
-        else:
-            state = torch.load(model_path)
-        
-        new_state = {}
-        for i in state['bert_model'].keys():
-            new_state[i[7:]] = state['bert_model'][i]
-        Bert.load_state_dict(new_state)
-        
-        new_state = {}
-        for i in state['step_1_model'].keys():
-            new_state[i[7:]] = state['step_1_model'][i]
-        step_1_model.load_state_dict(new_state)
-        
-        new_state = {}
-        for i in state['step2_forward_model'].keys():
-            new_state[i[7:]] = state['step2_forward_model'][i]
-        step2_forward_model.load_state_dict(new_state)
-        
-        new_state = {}
-        for i in state['step2_reverse_model'].keys():
-            new_state[i[7:]] = state['step2_reverse_model'][i]
-        step2_reverse_model.load_state_dict(new_state)
-        
-        optimizer.load_state_dict(state['optimizer'])
-        with torch.no_grad():
-            Bert.eval()
-            step_1_model.eval()
-            step2_forward_model.eval()
-            step2_reverse_model.eval()
-
-
-    if args.multi_gpu:
-        Bert = torch.nn.DataParallel(Bert)
-        step_1_model = torch.nn.DataParallel(step_1_model)
-        step2_forward_model = torch.nn.DataParallel(step2_forward_model)
-        step2_reverse_model = torch.nn.DataParallel(step2_reverse_model)
-
-    print("Model loading ended")
-
-    eval(Bert, step_1_model, step2_forward_model, step2_reverse_model, testset, args)
 
 
 
@@ -778,6 +682,9 @@ def main():
     parser.add_argument('--whether_warm_up', default=False)
     parser.add_argument('--warm_up', type=float, default=0.1)
     args = parser.parse_args()
+
+    if args.use_gcn and args.use_symux:
+        raise "Don't use GCN and SyMuxEncodre at the same time"
 
     for k,v in sorted(vars(args).items()):
         logger.info(str(k) + '=' + str(v))
