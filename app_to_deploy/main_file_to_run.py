@@ -2,7 +2,7 @@ import streamlit as st
 from annotated_text import annotated_text
 from app_stage.run import run, model_init
 from app_sbn.run import test, sbn_models_init
-# from prepare_text import prepare_text
+from prepare_text import prepare_text
 import ast
 
 text_box = st.form('users_text')
@@ -18,7 +18,7 @@ sentence = text_box.text_area('Your comment:', height=120)
 submit = text_box.form_submit_button(f'Make triplets!')
 
 
-# sentence = prepare_text(sentence)
+sentence = prepare_text(sentence)
 
 if len(sentence) == 0:
     st.write("Empty comment")
