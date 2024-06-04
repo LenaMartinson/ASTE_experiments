@@ -7,7 +7,6 @@ from app_sbn.data_BIO_loader import DataTterator, MyDataset
 from app_sbn.model import stage_2_features_generation, Step_1, Step_2_forward, Step_2_reverse, Loss
 from app_sbn.Metric import Metric
 from app_sbn.eval_features import unbatch_data
-from transformers.models.bert.modeling_bert import BertEmbeddings
 from app_sbn.gcn import GCN
 from app_sbn.syntax_features import make_adj_matrix
 import streamlit as st
@@ -397,16 +396,17 @@ def main():
     parser.add_argument('--warm_up', type=float, default=0.1)
     args = parser.parse_args()
 
-    for k,v in sorted(vars(args).items()):
-        logger.info(str(k) + '=' + str(v))
-    if args.mode == 'train':
-        train(args)
-    else:
-        test(args)
+    # for k,v in sorted(vars(args).items()):
+    #     logger.info(str(k) + '=' + str(v))
+    # if args.mode == 'train':
+    #     train(args)
+    # else:
+    test(args)
 
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logger.info("keyboard break")
+        raise "!!!"
+        # logger.info("keyboard break")

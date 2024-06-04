@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from app_stage.ASTE_dataloader import ASTE_End2End_Dataset, ASTE_collate_fn,load_vocab
 from app_stage.span_tagging import form_label_id_map, form_sentiment_id_map
 from app_stage.evaluate import evaluate_model
-
+from app_stage.model import base_model
 
 
 def totally_parameters(model):
@@ -83,7 +83,6 @@ config = {
 
 @st.cache_resource
 def model_init():
-    from app_stage.model import base_model
 
     args = Args()
     print('> Load model...')
