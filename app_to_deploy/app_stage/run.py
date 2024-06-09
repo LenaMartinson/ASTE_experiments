@@ -88,7 +88,7 @@ def model_init():
     print('> Load model...')
     # model = base_model(**config).to(args.device)
     
-    model = base_model(**config).from_pretrained("lmartinson/aste_stage_ver3")
+    model = base_model(**config).from_pretrained("lmartinson/aste_stage_ver_dist")
     return model
 
 
