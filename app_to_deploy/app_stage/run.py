@@ -41,7 +41,7 @@ class Args:
         self.max_span_length = 4
         self.device = 'cpu'
         self.version = '1D'
-        self.max_len = 1408
+        self.max_len = 512
         self.order_input = False
         self.random_shuffle = False
         self.train_batch_size = 1
@@ -84,11 +84,11 @@ config = {
 @st.cache_resource
 def model_init():
 
-    args = Args()
+    # args = Args()
     print('> Load model...')
-    model = base_model(**config).to(args.device)
+    # model = base_model(**config).to(args.device)
     
-    model = base_model.from_pretrained("lmartinson/aste_stage_ver3")
+    model = base_model(**config).from_pretrained("lmartinson/aste_stage_ver3")
     return model
 
 
@@ -134,44 +134,6 @@ def test(raw_text, base_model):
                                              saved_file="users_result.json")
     return saved_preds
 
-
-
-def get_bert_optimizer(model, args):
-
-    no_decay = ['bias', 'LayerNorm.weight']
-    diff_part = ['bert.embeddings', 'bert.encoder']
-    
-    
-
-    optimizer_grouped_parameters = [
-        {
-            "params": [p for n, p in model.named_parameters() if
-                    not any(nd in n for nd in no_decay) and any(nd in n for nd in diff_part)],
-            "weight_decay": args.l2,
-            "lr": args.bert_lr
-        },
-        {
-            "params": [p for n, p in model.named_parameters() if
-                    any(nd in n for nd in no_decay) and any(nd in n for nd in diff_part)],
-            "weight_decay": 0.0,
-            "lr": args.bert_lr
-        },
-        {
-            "params": [p for n, p in model.named_parameters() if
-                    not any(nd in n for nd in no_decay) and not any(nd in n for nd in diff_part)],
-            "weight_decay": args.l2,
-            "lr": args.lr
-        },
-        {
-            "params": [p for n, p in model.named_parameters() if
-                    any(nd in n for nd in no_decay) and not any(nd in n for nd in diff_part)],
-            "weight_decay": 0.0,
-            "lr": args.lr
-        },
-    ]
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, eps=args.adam_epsilon)
-
-    return optimizer
 
 def set_random_seed(seed):
 

@@ -20,8 +20,8 @@ submit = text_box.form_submit_button(f'Make triplets!')
 
 sentence = prepare_text(sentence)
 
-if len(sentence) == 0:
-    st.write("Empty comment")
+if len(sentence.split(" ")) <= 1:
+    st.write("Too small comment")
 
 palette = {
     'POS':[
@@ -70,7 +70,9 @@ if stage_model_use:
 if sbn_model_use:
     gcn_model, Bert, step_1, step_2_forward, step_2_reverse = sbn_models_init()
 
-if submit:
+if submit and len(sentence.split(" ")) <= 1:
+    st.write("Too small comment")
+elif submit:
     st.write('STAGE prediction:')
     stage_preds = None
     if stage_model_use:

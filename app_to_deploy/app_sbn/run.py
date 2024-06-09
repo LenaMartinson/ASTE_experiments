@@ -204,7 +204,7 @@ class Args:
         self.kl_loss_mode="KLLoss"
         self.kl_loss_weight=0.5
         self.learning_rate=1e-05
-        self.max_seq_length=1408
+        self.max_seq_length=512
         self.max_span_length=3
         self.model_para_test=False
         self.model_to_upload=None
@@ -215,7 +215,7 @@ class Args:
         self.related_span_underline=False
         self.span_generation="Max"
         self.task_learning_rate=0.0001
-        self.train_batch_size=4
+        self.train_batch_size=1
         self.warm_up=0.1
         self.whether_warm_up=False
 
@@ -225,7 +225,6 @@ def sbn_models_init():
 
     args = Args()
 
-    gcn_model = GCN(emb_dim=args.bert_feature_dim)
 
     bert_config = {
     "architectures": [
@@ -258,16 +257,12 @@ def sbn_models_init():
     }
 
     print("changing Bert...")
-
-    bert_c = BertConfig(**bert_config)
     
-    Bert = BertModel(bert_c)
-
-    Bert = Bert.from_pretrained("lmartinson/sbn_bert")
+    Bert = BertModel(BertConfig(**bert_config)).from_pretrained("lmartinson/sbn_bert")
 
     print("changing gcn...")
 
-    gcn_model = gcn_model.from_pretrained("lmartinson/sbn_gcn")
+    gcn_model = GCN(emb_dim=args.bert_feature_dim).from_pretrained("lmartinson/sbn_gcn")
 
     print("changing step_2_forward...")
 
